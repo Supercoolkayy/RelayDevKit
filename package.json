@@ -1,0 +1,40 @@
+{
+  "name": "relaydevkit",
+  "version": "1.0.0",
+  "description": "RelayDevKit reduces the engineering blocker to adopting RIF Relay by making integration reproducible and testable end-to-end. The deliverable is practical developer infrastructure: a known-good local environment, deterministic tests, and a CI template that turns Relay integration into a verifiable workflow. This enables more wallets and dApps to adopt relayed transactions confidently without requiring marketing or LOIs to justify demand.",
+  "repository": {
+    "type": "git",
+    "url": "git@github-work:Supercoolkayy/RelayDevKit"
+  },
+  "license": "ISC",
+  "author": "SupercoolKayy",
+  "type": "module",
+  "bin": {
+    "relaydevkit": "dist/cli/index.js"
+  },
+  "files": [
+    "dist",
+    "infra"
+  ],
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc && npm run copy:infra",
+    "copy:infra": "cpy \"infra/**/*\" dist/infra",
+    "start": "node dist/index.js"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "cpy-cli": "^7.0.0",
+    "path": "^0.12.7",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.2"
+  },
+  "dependencies": {
+    "chalk": "^5.6.2",
+    "commander": "^14.0.3",
+    "dotenv": "^17.4.1",
+    "execa": "^9.6.1",
+    "node-fetch": "^3.3.2"
+  }
+}
