@@ -1,5 +1,3 @@
-const http = require("node:http");
-const https = require("node:https");
 const { URL } = require("node:url");
 const { ethers } = require("ethers");
 
@@ -76,79 +74,15 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-function jsonRpcOverHttp(urlString, payload) {
-  return new Promise((resolve, reject) => {
-    const u = new URL(urlString);
-    const body = JSON.stringify(payload);
-    const isHttps = u.protocol === "https:";
-    const lib = isHttps ? https : http;
-    const port = u.port || (isHttps ? 443 : 80);
-    const req = lib.request(
-      {
-        hostname: u.hostname,
-        port,
-        path: u.pathname || "/",
-        method: "POST",
-        headers: {
-          Host: RSK_HOST_HEADER,
-          "Content-Type": "application/json; charset=utf-8",
-          "Content-Length": String(Buffer.byteLength(body)),
-          Accept: "application/json",
-          "Accept-Encoding": "identity",
-          Connection: "close",
-          "User-Agent": "RelayDevKit-initializer/1.0",
-        },
-      },
-      (res) => {
-        const chunks = [];
-        res.on("data", (c) => chunks.push(c));
-        res.on("end", () => {
-          const text = Buffer.concat(chunks).toString("utf8");
-          if (res.statusCode !== 200) {
-            reject(
-              new Error(
-                `HTTP ${res.statusCode}${text ? `: ${text.slice(0, 300)}` : ""}`
-              )
-            );
-            return;
-          }
-          try {
-            resolve(JSON.parse(text));
-          } catch (e) {
-            reject(e);
-          }
-        });
-      }
-    );
-    req.on("error", reject);
-    req.write(body);
-    req.end();
-  });
-}
-
-async function rpcCall(url, method, params) {
-  const data = await jsonRpcOverHttp(url, {
-    jsonrpc: "2.0",
-    method,
-    params,
-    id: 1,
-  });
-  if (data.error) {
-    throw new Error(data.error.message || JSON.stringify(data.error));
-  }
-  return data.result;
-}
-
-async function rpcBlockNumber(url) {
-  const hex = await rpcCall(url, "eth_blockNumber", []);
-  return Number.parseInt(hex, 16);
-}
-
-/** RSK can return txs without full ECDSA fields; ethers `tx.wait()` may throw when parsing blocks. */
-async function waitForReceiptRaw(url, txHash, timeoutMs = 120000) {
+/**
+ * Poll eth_getTransactionReceipt via the same JsonRpcProvider (custom Host header).
+ * Raw JSON-RPC result avoids ethers high-level receipt / block parsing; RSK can omit
+ * full ECDSA fields on txs, which breaks tx.wait() / some block walks.
+ */
+async function waitForReceipt(txHash, timeoutMs = 120000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    const receipt = await rpcCall(url, "eth_getTransactionReceipt", [txHash]);
+    const receipt = await provider.send("eth_getTransactionReceipt", [txHash]);
     if (receipt && receipt.blockNumber) {
       return receipt;
     }
@@ -157,14 +91,14 @@ async function waitForReceiptRaw(url, txHash, timeoutMs = 120000) {
   throw new Error("Timed out waiting for transaction receipt");
 }
 
-async function waitForJsonRpc(url, timeoutMs = RPC_WAIT_TIMEOUT_MS) {
+async function waitForJsonRpc(timeoutMs = RPC_WAIT_TIMEOUT_MS) {
   const deadline = Date.now() + timeoutMs;
   let nextLogAt = 0;
   let loggedFirst = false;
 
   while (Date.now() < deadline) {
     try {
-      const block = await rpcBlockNumber(url);
+      const block = await provider.getBlockNumber();
       console.log(`RPC ready (block ${block})`);
       return;
     } catch (err) {
@@ -204,7 +138,7 @@ async function main() {
   console.log(`   RPC: ${RPC_HTTP_URL.replace(/\/\/.*@/, "//***@")}`);
   console.log(`   Faucet: ${faucet.address}`);
 
-  await waitForJsonRpc(RPC_HTTP_URL);
+  await waitForJsonRpc();
   await sleep(POST_RPC_READY_DELAY_MS);
 
   for (const acc of accounts) {
@@ -215,7 +149,7 @@ async function main() {
         to: wallet.address,
         value: ethers.parseEther("10"),
       });
-      await waitForReceiptRaw(RPC_HTTP_URL, tx.hash);
+      await waitForReceipt(tx.hash);
     });
 
     console.log(`Funded ${acc.role}: ${wallet.address}`);
