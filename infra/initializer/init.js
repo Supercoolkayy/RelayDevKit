@@ -9,13 +9,6 @@ const RETRY_DELAY_MS = 2000;
 const POLL_MS = 2000;
 const WAIT_LOG_INTERVAL_MS = 30000;
 
-/**
- * rsk-dev.json genesis allocates RBTC to 0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826.
- * This is the standard pyethereum demo key (regtest / local dev only).
- */
-const DEFAULT_FAUCET_PRIVATE_KEY =
-  "0xc85ef7d79691fe79573b1a7064c19c1a9819ebdbd1faaab1a8ec92344438aaf4";
-
 const rawRpc = process.env.RSK_RPC_URL || "http://rootstock-node:4444";
 /** Origin without trailing slash (for logs / ethers). */
 const RPC_ORIGIN = rawRpc.replace(/\/+$/, "");
@@ -51,6 +44,14 @@ if (!managerKey?.trim() || !workerKey?.trim()) {
   process.exit(1);
 }
 
+const faucetKey = process.env.FAUCET_PRIVATE_KEY?.trim();
+if (!faucetKey) {
+  console.error(
+    "Missing FAUCET_PRIVATE_KEY. Set it in .env (see .env-example) or pass it via Docker Compose."
+  );
+  process.exit(1);
+}
+
 const connection = new ethers.FetchRequest(RPC_HTTP_URL);
 connection.setHeader("accept-encoding", "identity");
 connection.setHeader("Host", RSK_HOST_HEADER);
@@ -61,8 +62,6 @@ const provider = new ethers.JsonRpcProvider(
   { staticNetwork: true, batchMaxCount: 1 }
 );
 
-const faucetKey =
-  process.env.FAUCET_PRIVATE_KEY?.trim() || DEFAULT_FAUCET_PRIVATE_KEY;
 const faucet = new ethers.Wallet(faucetKey, provider);
 
 const accounts = [

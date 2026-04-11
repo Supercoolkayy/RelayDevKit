@@ -123,7 +123,7 @@ These are interpolated when you run `relaydevkit up` / `down` / `logs` / `status
 |----------|----------|---------|-------------|
 | `MANAGER_PRIVATE_KEY` | **Yes** | `initializer` | Hex private key (`0x…`) for the manager account to fund on regtest. **Sensitive.** |
 | `WORKER_PRIVATE_KEY` | **Yes** | `initializer` | Hex private key for the worker account. **Sensitive.** |
-| `FAUCET_PRIVATE_KEY` | No | `initializer` | Override for the account that sends RBTC. Defaults to the **public** `rsk-dev` genesis demo key (regtest only). **Sensitive** if you set a custom key. |
+| `FAUCET_PRIVATE_KEY` | **Yes** | `initializer` | Hex private key for the account that sends RBTC to manager/worker. Set in `.env` (see `.env-example` for the usual regtest demo key). **Sensitive.** |
 | `RSK_RPC_HOST_HEADER` | No | `initializer` | HTTP `Host` header for JSON-RPC to RSKj. Default inside the image is derived as `127.0.0.1:<port>` because RSKj’s allowlist rejects `Host: rootstock-node:4444`. Override only if your setup needs it. |
 | `RSK_RPC_URL` | No | `initializer` | JSON-RPC URL reachable **from inside the initializer container** (default `http://rootstock-node:4444/`). Override if you rename the node service or use a custom network. |
 
@@ -162,7 +162,7 @@ docker compose --env-file .env -f dist/infra/docker-compose.yml down -v
 
 ## Security notes
 
-- **Regtest demo keys** (including the built-in faucet key in `init.js`) are **public** and must **never** be used on mainnet or with real funds.
+- **Regtest demo keys** listed in **`.env-example`** (including the faucet key) are **public** and must **never** be used on mainnet or with real funds.
 - Treat **`MANAGER_PRIVATE_KEY`**, **`WORKER_PRIVATE_KEY`**, and **`FAUCET_PRIVATE_KEY`** as secrets.
 - Prefer **`.env`** for local development; use your CI/secret manager for automation.
 

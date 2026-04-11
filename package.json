@@ -18,7 +18,7 @@
   ],
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc && npm run copy:infra",
+    "build": "tsc && npm run copy:infra && node -e \"require('fs').chmodSync('dist/cli/index.js', 0o755)\"",
     "copy:infra": "cpy \"infra/**/*\" dist/infra",
     "start": "node dist/index.js"
   },
